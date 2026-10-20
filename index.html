@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<title>My Value — Personal Stock Tracker</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0b12;--panel:#151521;--muted:#a5a5ba;--line:#303044;--purple:#b39aff;--green:#55e39b;--red:#ff8294}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:linear-gradient(180deg,#1b1530 0,#0b0b12 250px);color:#f8f7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{width:100%;max-width:720px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
+header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px}.brand{font-size:13px;font-weight:800;letter-spacing:.12em;color:#c9baff}.sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.4}.pill{font-size:10px;color:#d3c8ff;border:1px solid #51466e;border-radius:30px;padding:7px 9px;white-space:nowrap}
+.card{background:rgba(21,21,33,.96);border:1px solid var(--line);border-radius:19px;padding:17px;margin:12px 0;box-shadow:0 8px 26px #0002}
+.label{font-size:11px;letter-spacing:.1em;font-weight:750;color:var(--muted)}.value{font-size:clamp(30px,9vw,45px);font-weight:800;letter-spacing:-.04em;overflow-wrap:anywhere;margin:7px 0}.change{font-size:13px;font-weight:700}.positive{color:var(--green)}.negative{color:var(--red)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row h2{font-size:16px;margin:0}select,input,button{font:inherit}select{max-width:48%;background:#242438;color:white;border:1px solid #42425a;border-radius:10px;padding:9px 8px;font-size:13px}
+.chartwrap{width:100%;overflow:hidden;margin-top:12px}svg{display:block;width:100%;height:auto;min-height:160px;overflow:visible}.axis{fill:#a5a5ba;font-size:10px}.gridline{stroke:#343447;stroke-width:1}.line{fill:none;stroke:var(--purple);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.dot{fill:#d2c5ff;stroke:#151521;stroke-width:2}
+.field{margin-top:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}.field input{width:100%;min-height:48px;border:1px solid #3a3a51;border-radius:12px;background:#0c0c14;color:#fff;padding:12px;font-size:16px;/* prevents iOS zoom */}.field input:focus{outline:2px solid #8e78d0;border-color:transparent}
+button{min-height:46px;border:0;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:750;cursor:pointer}.primary{width:100%;margin-top:14px;background:var(--purple);color:#171022}.secondary{background:#29293d;color:#f7f4ff}.danger{background:#351d29;color:#ffb5c0}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.actions button:last-child{grid-column:1/-1}
+.note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:12px}.history{display:grid;gap:8px;margin-top:12px}.entry{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#0d0d16;border:1px solid #29293b;border-radius:12px;padding:11px}.entry strong{font-size:13px}.entry small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.entryRight{display:flex;align-items:center;gap:8px;text-align:right}.entry button{min-height:38px;padding:8px 10px;font-size:12px}.empty{text-align:center;color:var(--muted);font-size:13px;padding:17px 5px}.status{font-size:12px;margin-top:10px;line-height:1.4}.status:empty{display:none}.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:90%;background:#f8f7ff;color:#171022;border-radius:30px;padding:11px 16px;font-size:13px;font-weight:750;box-shadow:0 4px 20px #0008;display:none;z-index:5}
+@media(min-width:520px){main{padding-left:20px;padding-right:20px}.card{padding:20px}.actions{grid-template-columns:repeat(3,1fr)}.actions button:last-child{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="brand">MY VALUE / TRACKER</div><div class="sub">Your personal growth, market-style.</div></div><div class="pill">MANUAL UPDATES</div></header>
+<section class="card">
+<div class="label">CURRENT PERSONAL VALUE</div><div class="value" id="currentValue">₹0</div><div id="overallChange" class="change">Add your first value to begin</div><div class="sub" id="lastUpdated">No entries yet</div>
+</section>
+<section class="card">
+<div class="row"><h2>Growth chart</h2><select id="period" aria-label="Chart period"><option value="all">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></div>
+<div class="chartwrap"><svg id="chart" viewBox="0 0 600 250" role="img" aria-label="Personal value history chart"></svg></div><div class="sub">The chart uses only the values you enter.</div>
+</section>
+<section class="card">
+<div class="label">UPDATE YOUR VALUE</div>
+<form id="entryForm">
+<div class="field"><label for="amount">Total value (₹)</label><input id="amount" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 1250000" required></div>
+<div class="field"><label for="entryDate">Date</label><input id="entryDate" type="date" required></div>
+<div class="field"><label for="noteInput">Note (optional)</label><input id="noteInput" type="text" maxlength="100" placeholder="e.g. End of month valuation"></div>
+<button class="primary" type="submit">Save daily value</button><div id="status" class="status" role="status" aria-live="polite"></div>
+</form>
+<div class="actions"><button class="secondary" id="exportBtn" type="button">Export CSV</button><button class="secondary" id="importBtn" type="button">Import CSV</button><button class="danger" id="clearBtn" type="button">Clear data</button></div>
+<input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+<div class="note"><b>iPhone storage note:</b> When opening a downloaded HTML file, Safari may not reliably retain saved data between openings. Export a CSV backup regularly. For dependable storage and syncing, this tracker should eventually be hosted as a web app.</div>
+</section>
+<section class="card"><div class="row"><h2>Recent entries</h2><span class="sub" id="entryCount">0 entries</span></div><div id="history" class="history"><div class="empty">Your saved values will appear here.</div></div></section>
+</main><div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+'use strict';
+const KEY='myValueTracker.v2';
+const $=id=>document.getElementById(id);
+let entries=[];
+function safeLoad(){try{const raw=window.localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);if(Array.isArray(data))entries=data.filter(validEntry);}}catch(e){$('status').textContent='Browser storage is unavailable in this file view. Use Export CSV for backups; a hosted version is more reliable.';}}
+function validEntry(x){return x&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.date)&&Number.isFinite(Number(x.amount))&&Number(x.amount)>=0;}
+function persist(){try{window.localStorage.setItem(KEY,JSON.stringify(entries));return true;}catch(e){return false;}}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function money(n){return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(n);}
+function dateFmt(s){return new Date(s+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(s){const t=$('toast');t.textContent=s;t.style.display='block';window.setTimeout(()=>{t.style.display='none';},2200);}
+$('entryDate').value=today();
+$('entryForm').addEventListener('submit',function(e){
+ e.preventDefault();
+ const amount=Number($('amount').value),date=$('entryDate').value,note=$('noteInput').value.trim();
+ if(!$('amount').value.trim()||!date||!Number.isFinite(amount)||amount<0){$('status').textContent='Enter a valid amount and date.';return;}
+ const idx=entries.findIndex(x=>x.date===date);
+ const item={date:date,amount:amount,note:note};
+ if(idx>=0)entries[idx]=item;else entries.push(item);
+ entries.sort((a,b)=>a.date.localeCompare(b.date));
+ const saved=persist();
+ render();
+ $('status').textContent=saved?'Saved on this device.':'Updated for this session, but this file view blocked persistent storage. Export CSV to keep a backup.';
+ $('amount').value='';$('noteInput').value='';
+ toast(idx>=0?'Entry updated':'Value saved');
+});
+$('period').addEventListener('change',render);
+function render(){
+ entries.sort((a,b)=>a.date.localeCompare(b.date));
+ const latest=entries[entries.length-1],first=entries[0];
+ $('currentValue').textContent=latest?money(latest.amount):money(0);
+ $('lastUpdated').textContent=latest?'Latest entry: '+dateFmt(latest.date):'No entries yet';
+ const change=$('overallChange');
+ if(entries.length>1){const diff=latest.amount-first.amount,pct=first.amount!==0?diff/first.amount*100:null;change.className='change '+(diff>=0?'positive':'negative');change.textContent=(diff>=0?'+':'−')+money(Math.abs(diff))+' overall '+(pct===null?'':'('+(pct>=0?'+':'')+pct.toFixed(2)+'%) ')+'since first entry';}
+ else{change.className='change';change.textContent=entries.length?'First value recorded — add another to see growth':'Add your first value to begin';}
+ drawChart();
+ $('entryCount').textContent=entries.length+' '+(entries.length===1?'entry':'entries');
+ const hist=$('history');hist.innerHTML='';
+ if(!entries.length){hist.innerHTML='<div class="empty">Your saved values will appear here.</div>';return;}
+ entries.slice().reverse().slice(0,20).forEach(x=>{
+  const d=document.createElement('div');d.className='entry';
+  const left=document.createElement('div');left.innerHTML='<strong>'+dateFmt(x.date)+'</strong><small>'+escapeHtml(x.note||'Personal value')+'</small>';
+  const right=document.createElement('div');right.className='entryRight';
+  const val=document.createElement('strong');val.textContent=money(x.amount);
+  const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='Edit';
+  edit.addEventListener('click',()=>{$('amount').value=String(x.amount);$('entryDate').value=x.date;$('noteInput').value=x.note||'';$('amount').focus();window.scrollTo({top:0,behavior:'smooth'});});
+  right.append(val,edit);d.append(left,right);hist.append(d);
+ });
+}
+function drawChart(){
+ const svg=$('chart');while(svg.firstChild)svg.removeChild(svg.firstChild);
+ const NS='http://www.w3.org/2000/svg';function el(tag,attrs,text){const n=document.createElementNS(NS,tag);Object.keys(attrs||{}).forEach(k=>n.setAttribute(k,attrs[k]));if(text!==undefined)n.textContent=text;svg.appendChild(n);return n;}
+ const defs=document.createElementNS(NS,'defs');defs.innerHTML='<linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b39aff" stop-opacity=".35"/><stop offset="100%" stop-color="#b39aff" stop-opacity="0"/></linearGradient>';svg.appendChild(defs);
+ let data=entries.slice();const p=$('period').value;
+ if(p!=='all'&&data.length){const cutoff=new Date();cutoff.setDate(cutoff.getDate()-Number(p));const c=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');data=data.filter(x=>x.date>=c);}
+ const W=600,H=250,L=68,R=14,T=18,B=34,iw=W-L-R,ih=H-T-B;
+ if(!data.length){el('text',{x:W/2,y:H/2,'text-anchor':'middle',fill:'#a5a5ba','font-size':'14'},entries.length?'No entries in this period':'Save your first value to draw your chart');return;}
+ let vals=data.map(x=>x.amount),min=Math.min(...vals),max=Math.max(...vals);
+ if(min===max){const pad=Math.max(1,Math.abs(min)*.08);min=Math.max(0,min-pad);max+=pad;}else{const pad=(max-min)*.12;min=Math.max(0,min-pad);max+=pad;}
+ const xx=i=>L+(data.length===1?iw/2:i*iw/(data.length-1)),yy=v=>T+(max-v)/(max-min)*ih;
+ for(let i=0;i<5;i++){const v=min+(max-min)*i/4,y=yy(v);el('line',{x1:L,y1:y,x2:W-R,y2:y,class:'gridline'});let label=v>=100000?'₹'+(v/100000).toFixed(1)+'L':v>=1000?'₹'+(v/1000).toFixed(0)+'k':'₹'+Math.round(v);el('text',{x:L-8,y:y+4,'text-anchor':'end',class:'axis'},label);}
+ const pts=data.map((d,i)=>[xx(i),yy(d.amount)]);const path=pts.map((q,i)=>(i?'L':'M')+q[0]+' '+q[1]).join(' ');
+ el('path',{d:path+' L '+pts[pts.length-1][0]+' '+(T+ih)+' L '+pts[0][0]+' '+(T+ih)+' Z',fill:'url(#fill)'});
+ el('path',{d:path,class:'line'});
+ pts.forEach(q=>el('circle',{cx:q[0],cy:q[1],r:data.length>35?2.5:4,class:'dot'}));
+ el('text',{x:L,y:H-8,class:'axis'},dateFmt(data[0].date));if(data.length>1)el('text',{x:W-R,y:H-8,'text-anchor':'end',class:'axis'},dateFmt(data[data.length-1].date));
+}
+$('exportBtn').addEventListener('click',function(){
+ const rows=[['date','amount_inr','note'],...entries.map(x=>[x.date,x.amount,x.note||''])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='my-value-history.csv';document.body.appendChild(a);a.click();a.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);toast('CSV backup prepared');
+});
+$('importBtn').addEventListener('click',()=>$('fileInput').click());
+$('fileInput').addEventListener('change',function(e){
+ const file=e.target.files&&e.target.files[0];if(!file)return;const reader=new FileReader();
+ reader.onload=function(){try{const lines=String(reader.result).replace(/^\ufeff/,'').trim().split(/\r?\n/);const imported=[];
+ for(let i=1;i<lines.length;i++){const cols=lines[i].match(/("(?:""|[^"])*"|[^,]*)(,|$)/g);if(!cols)continue;const vals=cols.slice(0,3).map(v=>v.replace(/,$/,'').replace(/^"|"$/g,'').replace(/""/g,'"'));const item={date:vals[0],amount:Number(vals[1]),note:vals[2]||''};if(validEntry(item))imported.push(item);}
+ if(!imported.length){toast('No valid entries found');return;}const map=new Map(entries.map(x=>[x.date,x]));imported.forEach(x=>map.set(x.date,x));entries=Array.from(map.values()).sort((a,b)=>a.date.localeCompare(b.date));const saved=persist();render();toast('Imported '+imported.length+' entries'+(saved?'':' — export a backup'));}catch(err){toast('Could not read that CSV file');}};
+ reader.readAsText(file);e.target.value='';
+});
+$('clearBtn').addEventListener('click',function(){if(window.confirm('Delete all saved values from this browser? Export a backup first if needed.')){entries=[];const saved=persist();render();toast(saved?'Data cleared':'Data cleared for this session');}});
+safeLoad();render();
+})();
+</script>
+</body>
+</html>
