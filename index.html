@@ -49,11 +49,12 @@ button{min-height:46px;border:0;border-radius:12px;padding:12px 14px;font-size:1
 (function(){
 'use strict';
 const KEY='myValueTracker.v2';
+const LEGACY_KEYS=['myValueTracker.v1','myValueTracker'];
 const $=id=>document.getElementById(id);
 let entries=[];
-function safeLoad(){try{const raw=window.localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);if(Array.isArray(data))entries=data.filter(validEntry);}}catch(e){$('status').textContent='Browser storage is unavailable in this file view. Use Export CSV for backups; a hosted version is more reliable.';}}
-function validEntry(x){return x&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.date)&&Number.isFinite(Number(x.amount))&&Number(x.amount)>=0;}
-function persist(){try{window.localStorage.setItem(KEY,JSON.stringify(entries));return true;}catch(e){return false;}}
+function safeLoad(){try{let raw=window.localStorage.getItem(KEY);if(!raw){for(const oldKey of LEGACY_KEYS){const oldRaw=window.localStorage.getItem(oldKey);if(oldRaw){raw=oldRaw;break;}}}if(raw){const data=JSON.parse(raw);if(Array.isArray(data)){entries=data.filter(validEntry);if(!window.localStorage.getItem(KEY)&&entries.length){window.localStorage.setItem(KEY,JSON.stringify(entries));}}}}catch(e){$('status').textContent='Could not read saved browser data. Keep a CSV backup and check Safari website data settings.';}}
+function validEntry(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&Number.isFinite(Number(x.amount))&&Number(x.amount)>=0;}
+function persist(){try{const serialized=JSON.stringify(entries);window.localStorage.setItem(KEY,serialized);return window.localStorage.getItem(KEY)===serialized;}catch(e){return false;}}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function money(n){return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(n);}
 function dateFmt(s){return new Date(s+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
@@ -70,7 +71,7 @@ $('entryForm').addEventListener('submit',function(e){
  entries.sort((a,b)=>a.date.localeCompare(b.date));
  const saved=persist();
  render();
- $('status').textContent=saved?'Saved on this device.':'Updated for this session, but this file view blocked persistent storage. Export CSV to keep a backup.';
+ $('status').textContent=saved?'Saved on this device. Reopen this same website in the same browser to see your entries.':'Could not save permanently in this browser view. Open the GitHub Pages https:// link in Safari and export a CSV backup.';
  $('amount').value='';$('noteInput').value='';
  toast(idx>=0?'Entry updated':'Value saved');
 });
